@@ -1,21 +1,28 @@
 ;;; lang/cc/config.el --- c, c++, and obj-c -*- lexical-binding: t; -*-
 
 (setq semantic-default-submodes
-      '(global-semantic-idle-scheduler-mode
-        global-semanticdb-minor-mode
-        global-semantic-idle-summary-mode
-        ;; global-semantic-idle-completions-mode
+      '(global-semanticdb-minor-mode
         global-semantic-highlight-func-mode
         global-semantic-decoration-mode
         global-semantic-stickyfunc-mode
-        global-semantic-mru-bookmark-mode))
+        global-semantic-mru-bookmark-mode
+        global-semantic-highlight-edits-mode
+        ;; global-semantic-idle-completions-mode
+        global-semantic-idle-scheduler-mode
+        global-semantic-idle-summary-mode
+        global-semantic-idle-local-symbol-highlight-mode))
 (add-hook 'semanticdb-project-root-functions #'projectile-project-root)
 (global-set-key '[(S-down-mouse-1)] 'semantic-ia-fast-mouse-jump)
 (set-company-backend! 'c-mode
-  '(:separate
-    company-semantic
-    company-yasnippet))
+  '(company-semantic
+    company-etags)
+  'company-c-headers
+  'company-yasnippet)
 (semantic-mode 1)
+
+(use-package! stickyfunc-enhance)
+
+(setq company-transformers '(delete-consecutive-dups))
 
 (defun c-lineup-arglist-tabs-only (ignored)
   "Line up argument lists by tabs, not spaces"
@@ -81,5 +88,12 @@
                (show-trailing-whitespace . t))))
 
 (set-lookup-handlers! '(c-mode c++-mode)
-    :definition #'semantic-complete-jump
-    :references #'semantic-symref)
+  :definition #'semantic-complete-jump
+  :references #'semantic-symref-symbol)
+
+;; (use-package! xref
+  ;; :defer
+  ;; :after (xref-etags-mode t))
+
+(use-package! srefactor
+  :bind ("M-RET" . srefactor-refactor-at-point))

@@ -53,4 +53,3 @@
 (package! ox-gfm)
 (package! meson-mode)
 (package! ninja-mode)
-(package! stickyfunc-enhance)
