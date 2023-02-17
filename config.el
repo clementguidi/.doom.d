@@ -84,7 +84,8 @@
 ;; Projectile
 
 ;; Org
-(use-package! ox-confluence)
+(setq org-clock-in-switch-to-state "STRT")
+(setq org-clock-out-switch-to-state "HOLD")
 ;; Org
 
 ;; Centaur
