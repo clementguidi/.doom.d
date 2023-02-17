@@ -126,7 +126,8 @@
      (?c "As Confluence file" (lambda (a s v b) (org-html-export-to-confluence a s v b)))))
   :translate-alist '((headline . org-html-confluence-headline)
                      (inner-template . org-html-confluence-inner-template)
-                     (keyword . org-html-confluence-keyword))
+                     (keyword . org-html-confluence-keyword)
+                     (link . org-html-confluence-link))
   :options-alist '((:headline-levels nil "H" 2)
                    (:html-confluence-jira-number "JIRA" nil nil space)
                    (:with-inlinetasks nil "inline" nil)
@@ -301,4 +302,24 @@ holding contextual information."
                   (if (eq (org-element-type first-content) 'section) contents
                     (concat (org-html-section first-content "" info) contents))
                   (org-html--container headline info)))))))
+
+(defun org-html-confluence--format-image (source)
+  (concat
+   "<ac:image ac:height=\"150\">\n"
+   (format "<ri:attachment ri:filename=\"%s\"/>\n" source)
+   "</ac:image>"))
+
+(defun org-html-confluence-link (link desc info)
+  "Transcode a LINK object from Org to HTML Confluence.
+DESC is the description part of the link, or the empty string.
+INFO is a plist holding contextual information.  See
+`org-export-data'."
+  (let ((type (org-element-property :type link))
+        (path (org-element-property :path link)))
+    (if (and (string= "file" type)
+             (plist-get info :html-inline-images)
+	     (org-export-inline-image-p
+	      link (plist-get info :html-inline-image-rules)))
+        (org-html-confluence--format-image path)
+      (org-html-link link desc info))))
 ;;
