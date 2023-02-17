@@ -77,6 +77,12 @@
 (menu-bar-mode t)
 (add-hook 'window-setup-hook #'toggle-frame-fullscreen)
 
+(which-function-mode t)
+
+;; Projectile
+(setq projectile-tags-command "etags.ctags -Re -f \"%s\" %s \"%s\"")
+;; Projectile
+
 ;; Org
 (use-package! ox-confluence)
 ;; Org
