@@ -115,3 +115,190 @@
 ;; GUD
 (define-key global-map (kbd "C-x C-a SPC") 'gdb-restore-windows)
 ;; GUD
+
+;; Org
+(require 'ox)
+(org-export-define-derived-backend 'html-confluence 'html
+  :menu-entry
+  '(?h "Export to HTML"
+    ((?C "As Confluence buffer"
+         (lambda (a s v b) (org-html-export-as-confluence a s v b)))
+     (?c "As Confluence file" (lambda (a s v b) (org-html-export-to-confluence a s v b)))))
+  :translate-alist '((headline . org-html-confluence-headline)
+                     (inner-template . org-html-confluence-inner-template)
+                     (keyword . org-html-confluence-keyword))
+  :options-alist '((:headline-levels nil "H" 2)
+                   (:html-confluence-jira-number "JIRA" nil nil space)
+                   (:with-inlinetasks nil "inline" nil)
+                   (:with-statistics-cookies nil "stat" nil)
+                   (:with-sub-superscript nil "^" nil)
+                   (:with-tasks nil "tasks"
+                                '("TODO" "DONE" "PROJ" "STRT" "WAIT" "HOLD"))
+                   (:with-todo-keywords nil "todo" nil)))
+
+(defun org-html-export-as-confluence
+    (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to an HTML Confluence buffer.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting buffer should be accessible
+through the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, only write code
+between \"<body>\" and \"</body>\" tags.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Export is done in a buffer named \"*Org HTML Confluence Export*\", which
+will be displayed when `org-export-show-temporary-export-buffer'
+is non-nil."
+  (interactive)
+  (org-export-to-buffer 'html-confluence "*Org HTML Confluence Export*"
+    async subtreep visible-only body-only ext-plist
+    (lambda () (set-auto-mode t))))
+
+(defun org-html-export-to-confluence
+    (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to a HTML Confluence file.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting file should be accessible through
+the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, only write code
+between \"<body>\" and \"</body>\" tags.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Return output file's name."
+  (interactive)
+  (let* ((extension (concat
+		     (when (> (length org-html-extension) 0) ".")
+		     (or (plist-get ext-plist :html-extension)
+			 org-html-extension
+			 "html")))
+	 (file (org-export-output-file-name extension subtreep))
+	 (org-export-coding-system org-html-coding-system))
+    (org-export-to-file 'html-confluence file
+      async subtreep visible-only body-only ext-plist)))
+
+(defun org-html-confluence-toc ()
+  "<span><ac:structured-macro ac:name=\"toc\" ac:schema-version=\"1\"/></span>")
+
+(defun org-html-confluence-jira (jira)
+  (concat
+   "<div>"
+   "<p>\n"
+   "<ac:structured-macro ac:name=\"jira\" ac:schema-version=\"1\">\n"
+   "<ac:parameter ac:name=\"server\">Agile JIRA</ac:parameter>\n"
+   "<ac:parameter ac:name=\"key\">"
+   jira
+   "</ac:parameter>\n"
+   "</ac:structured-macro>\n"
+   "</p>"
+   "</div>"))
+
+(defun org-html-confluence-footnote-section (info)
+  (let ((jiras (plist-get info :html-confluence-jira-number)))
+    (mapconcat #'org-html-confluence-jira (split-string jiras) "\n")))
+
+(defun org-html-confluence-inner-template (contents info)
+  "Return body of document string after HTML conversion.
+CONTENTS is the transcoded contents string.  INFO is a plist
+holding export options."
+  (concat
+   ;; Table of contents.
+   (org-html-confluence-toc)
+   "\n"
+   ;; Document contents.
+   contents
+   ;; Footnotes section.
+   "\n"
+   (org-html-confluence-footnote-section info)))
+
+(defun org-html-confluence-keyword (keyword _contents info)
+  "Transcode a KEYWORD element from Org to HTML.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (let ((key (org-element-property :key keyword))
+        (value (org-element-property :value keyword)))
+    (cond
+     ((string= key "HTML") value)
+     ((string= key "TOC") (org-html-confluence-toc)))))
+
+(defun org-html-confluence-headline (headline contents info)
+  "Transcode a HEADLINE element from Org to HTML.
+CONTENTS holds the contents of the headline.  INFO is a plist
+holding contextual information."
+  (unless (org-element-property :footnote-section-p headline)
+    (let* ((numberedp (org-export-numbered-headline-p headline info))
+           (level (+ (org-export-get-relative-level headline info)
+                     (1- (plist-get info :html-toplevel-hlevel))))
+           (todo (and (plist-get info :with-todo-keywords)
+                      (let ((todo (org-element-property :todo-keyword headline)))
+                        (and todo (org-export-data todo info)))))
+           (todo-type (and todo (org-element-property :todo-type headline)))
+           (priority (and (plist-get info :with-priority)
+                          (org-element-property :priority headline)))
+           (text (org-export-data (org-element-property :title headline) info))
+           (tags (and (plist-get info :with-tags)
+                      (org-export-get-tags headline info)))
+           (full-text (funcall (plist-get info :html-format-headline-function)
+                               todo todo-type priority text tags info))
+           (contents (or contents ""))
+	   (id (org-html--reference headline info)))
+      (if (org-export-low-level-p headline info)
+          ;; This is a deep sub-tree: export it as a list item.
+          (let* ((html-type (if numberedp "ol" "ul")))
+	    (concat
+	     (and (org-export-first-sibling-p headline info)
+		  (format "<%s>\n" html-type))
+	     (org-html-format-list-item
+	      contents (if numberedp 'ordered 'unordered)
+	      nil info nil
+	      (concat (org-html--anchor id nil nil info) full-text)) "\n"
+	     (and (org-export-last-sibling-p headline info)
+		  (format "</%s>\n" html-type))))
+	;; Standard headline.  Export it as a section.
+        (let ((first-content (car (org-element-contents headline))))
+          (format "<br/><%s>%s<br/>%s</%s>\n"
+                  (org-html--container headline info)
+                  (format "\n<h%d>%s</h%d>\n"
+                          level
+			  full-text
+                          level)
+                  ;; When there is no section, pretend there is an
+                  ;; empty one to get the correct <div
+                  ;; class="outline-...> which is needed by
+                  ;; `org-info.js'.
+                  (if (eq (org-element-type first-content) 'section) contents
+                    (concat (org-html-section first-content "" info) contents))
+                  (org-html--container headline info)))))))
+;;
