@@ -88,12 +88,23 @@
                (show-trailing-whitespace . t))))
 
 (set-lookup-handlers! '(c-mode c++-mode)
-  :definition #'semantic-complete-jump
+  :definition #'semantic-ia-fast-jump
   :references #'semantic-symref-symbol)
 
-;; (use-package! xref
-  ;; :defer
-  ;; :after (xref-etags-mode t))
+(advice-remove #'xref-push-marker-stack #'doom-set-jump-a)
+(advice-add #'semantic-complete-jump :around #'doom-set-jump-a)
+
+(setq better-jumper-add-jump-behavior 'replace)
+
+(defun projectile-semantic-parse-all ()
+  "Force semantic to parse all code files in a projectile project."
+  (interactive)
+  (let ((recentf-mode-p recentf-mode))
+    (recentf-mode nil)
+    (projectile-process-current-project-files
+     (lambda (f) (if (string-match-p "\\.[Shc]$" f)
+                (semantic-file-tag-table (concat (projectile-project-root) f)))))
+    (recentf-mode recentf-mode-p)))
 
 (use-package! srefactor
   :bind ("M-RET" . srefactor-refactor-at-point))
