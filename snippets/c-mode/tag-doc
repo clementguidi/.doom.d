@@ -1,0 +1,25 @@
+# -*- mode: snippet -*-
+# name: tag documentation
+# uuid: tagdoc
+# key: doc
+# condition: t
+# type: command
+# --
+(yas-expand-snippet
+ (let* ((tag (semantic-find-tag-by-overlay-next))
+        (name (semantic-tag-name tag))
+        (class (semantic-tag-class tag))
+        (attr (semantic-tag-attributes tag)))
+   (concat
+    "/**"
+    "\n * ${1:" name "} - $2"
+    (if (eq class 'function)
+        (let ((args (semantic-tag-function-arguments tag))
+              (type (semantic-tag-type tag)))
+          (concat
+           (doc-format-args args 3)
+           (if (not (string= type "void"))
+               (concat "\n * @return - $"
+                       (number-to-string (+ 2 (* 3 (length args)) 1)))))))
+    "$0"
+    "\n */")))

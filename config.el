@@ -324,3 +324,22 @@ INFO is a plist holding contextual information.  See
         (org-html-confluence--format-image path)
       (org-html-link link desc info))))
 ;;
+
+;; yasnippet
+(defun doc-format-args (args index)
+  (let ((arg (car args))
+        (rest (cdr args)))
+    (concat
+     "${"
+     (number-to-string index)
+     ":"
+     "\n * @${"
+     (number-to-string (1+ index))
+     ":"
+     (car arg)
+     "} - $"
+     (number-to-string (+ 2 index))
+     "}"
+     (if rest
+         (doc-format-args rest (+ index 3))))))
+;; yasnippet
