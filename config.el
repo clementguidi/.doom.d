@@ -343,3 +343,9 @@ INFO is a plist holding contextual information.  See
      (if rest
          (doc-format-args rest (+ index 3))))))
 ;; yasnippet
+
+
+;; compilation
+(remove-hook 'compilation-filter-hook 'doom-apply-ansi-color-to-compilation-buffer-h)
+(add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
+;; compilation
